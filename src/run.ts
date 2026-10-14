@@ -1,4 +1,5 @@
 import { Agent, AgentNotFoundError, CursorAgentError, type AgentOptions, type SDKMessage } from "@cursor/sdk";
+import { ensureRipgrep } from "./ripgrep.js";
 import { createTools } from "./tools.js";
 
 export async function runCampaignAgent(options: {
@@ -8,6 +9,8 @@ export async function runCampaignAgent(options: {
   name: string;
   onAgentId?: (agentId: string) => void;
 }): Promise<number> {
+  ensureRipgrep();
+
   const apiKey = process.env.CURSOR_API_KEY;
   if (!apiKey) {
     console.error("CURSOR_API_KEY is not set. Add it to .env (see .env.example) and run again.");
