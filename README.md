@@ -1,12 +1,8 @@
 # One Agent to Rule Them All
 
-You write a short brief. One worker on your computer designs a landing page, builds it, puts it on the internet, and then tells you whether anyone visited.
-
-That matters because the page, the address, and the visit counts stay with the same campaign. The report is about the site that actually went live. If nobody has visited, the report says zero.
-
 ## The site
 
-Beanline is the page this project already published. It is a one-page waitlist for a coffee subscription: dark, like a magazine, with one job for the visitor, which is to leave an email address.
+Beanline is the page this project published. It is a one-page waitlist for a coffee subscription: with one job for the visitor, which is to leave an email address.
 
 It is live at https://beanline-phi.vercel.app.
 
@@ -26,9 +22,9 @@ It does five things, in order:
 
 A later check-in uses the same campaign. It measures the page that is already up. It does not redesign the page or publish it again.
 
-The visit counts come from Vercel. Turn on Web Analytics for the project once in the Vercel dashboard. Until that is on, the report says the numbers are missing and still includes the live address.
+The visit counts come from Vercel. 
 
-A job on this computer runs that check-in every day at 9:00 local time, for every campaign. The Mac has to be awake. Each run adds a new report file. The log is `logs/daily-report.log`.
+A job on this computer runs that check-in every day at 9:00 local time, for every campaign. Each run adds a new report file. The log is `logs/daily-report.log`.
 
 ## Setup
 
