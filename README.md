@@ -2,7 +2,7 @@
 
 ## The site
 
-"Beanline" is a one-page waitlist for a coffee subscription, with one job for the visitor, which is to leave an email address.
+Beanline is a one-page waitlist for a coffee subscription, with one job for the visitor, which is to leave an email address.
 
 It is live at https://beanline-phi.vercel.app.
 
