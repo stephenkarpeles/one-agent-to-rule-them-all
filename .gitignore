@@ -5,3 +5,7 @@ dist/
 .DS_Store
 campaigns/*
 !campaigns/.gitkeep
+!campaigns/*/
+campaigns/*/**
+!campaigns/*/reports/
+!campaigns/*/reports/**
