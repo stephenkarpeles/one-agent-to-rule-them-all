@@ -6,7 +6,7 @@ Beanline is a one-page waitlist for a coffee subscription, with one job for the 
 
 It is live at https://beanline-phi.vercel.app.
 
-The page is a real site. Someone can open it. Vercel can count the visits. The reports in `campaigns/beanline/reports/` are about that address.
+The page is a real site. Someone can open it. Vercel can count the visits. When someone leaves an email address, that address is saved. The reports in `campaigns/beanline/reports/` list who signed up, along with the visit counts.
 
 ## The agent
 
@@ -17,12 +17,12 @@ It does five things, in order:
 1. Writes the design: who the page is for, the colors, and the sections.
 2. Builds a simple page, one HTML file and one stylesheet, in `campaigns/<name>/site`.
 3. Publishes that folder to Vercel and saves the live address.
-4. Asks Vercel how many people viewed the page, and from where.
-5. Writes a short report: what went live, what the numbers say, and one next step.
+4. Asks Vercel how many people viewed the page, and reads the email addresses people submitted.
+5. Writes a short report: what went live, what the visits and the waitlist say, and one next step.
 
-A later check-in uses the same campaign. It measures the page that is already up. It does not redesign the page or publish it again.
+A later check-in uses the same campaign. It measures the page that is already up and reads the waitlist again. It does not redesign the page or publish it again.
 
-The visit counts come from Vercel. 
+The visit counts come from Vercel. The waitlist is the addresses submitted on the page. 
 
 A job on this computer runs that check-in every day at 9:00 local time, for every campaign. Each run adds a new report file. The log is `logs/daily-report.log`.
 
@@ -57,7 +57,7 @@ npm run agent -- report beanline
 npm run agent -- list
 ```
 
-`report` reads traffic from the day the page was published through today, and writes a new markdown file. `list` shows the campaigns on this machine.
+`report` reads traffic from the day the page was published through today, reads the waitlist, and writes a new markdown file. `list` shows the campaigns on this machine.
 
 The daily job runs `scripts/daily-reports.sh`, which does this for every campaign.
 
@@ -68,6 +68,7 @@ campaigns/<name>/design.md
 campaigns/<name>/site/index.html
 campaigns/<name>/campaign.json    # name, live address, and the id of the worker
 campaigns/<name>/latest-stats.json
+campaigns/<name>/latest-signups.json
 campaigns/<name>/reports/
 ```
 

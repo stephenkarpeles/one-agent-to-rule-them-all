@@ -2,6 +2,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { teamQuery, vercelToken } from "./env.js";
 import type { MetricRow, TrafficSnapshot } from "./report.js";
+import { injectSignupRecorder, signupOutputFiles } from "./signups.js";
 
 const INSIGHTS_SNIPPET = '<script defer src="/_vercel/insights/script.js"></script>';
 
@@ -55,7 +56,7 @@ export async function readSiteFiles(
       const rel = path.relative(siteDir, full).split(path.sep).join("/");
       let body = await readFile(full);
       if (rel.endsWith(".html") || rel.endsWith(".htm")) {
-        const html = injectInsights(body.toString("utf8"));
+        const html = injectSignupRecorder(injectInsights(body.toString("utf8")));
         await writeFile(full, html);
         body = Buffer.from(html);
       }
@@ -81,20 +82,28 @@ export interface LiveDeployment {
   readyState: string;
 }
 
-export async function deployDirectory(siteDir: string, projectName: string): Promise<LiveDeployment> {
+export async function deployDirectory(
+  siteDir: string,
+  projectName: string,
+  signupToken: string,
+): Promise<LiveDeployment> {
   const token = requireVercelToken();
-  const files = await readSiteFiles(siteDir).catch((err: unknown) => {
+  const siteFiles = await readSiteFiles(siteDir).catch((err: unknown) => {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
       throw new Error("The site directory does not exist yet. Write index.html, then deploy.");
     }
     throw err;
   });
-  if (files.length === 0) {
+  if (siteFiles.length === 0) {
     throw new Error(`No files in ${siteDir}. Write index.html before deploying.`);
   }
-  if (!files.some((file) => file.file === "index.html")) {
+  if (!siteFiles.some((file) => file.file === "index.html")) {
     throw new Error("The site needs index.html at the root of the site directory.");
   }
+  const files = [
+    ...siteFiles.map((file) => ({ ...file, file: `.vercel/output/static/${file.file}` })),
+    ...signupOutputFiles(signupToken).map((file) => ({ ...file, file: `.vercel/output/${file.file}` })),
+  ];
 
   const params = new URLSearchParams({
     forceNew: "1",

@@ -10,6 +10,7 @@ import {
   type CampaignDesign,
 } from "./campaign.js";
 import { renderReport, type TrafficSnapshot } from "./report.js";
+import { ensureProject, ensureSignupStore, loadSignupSnapshot, type SignupSnapshot } from "./signups.js";
 import { deployDirectory, fetchTraffic, VercelRequestError } from "./vercel.js";
 
 interface ToolHost {
@@ -78,7 +79,7 @@ export function createTools(root: string, host: ToolHost): Record<string, SDKCus
     },
     fetch_traffic: {
       description:
-        "Read Vercel Web Analytics for a deployed campaign: page views, visitors, and breakdowns by day, country, device, referrer, UTM source, and path. A new site may legitimately be all zeros. Do not invent numbers when this fails.",
+        "Read Vercel Web Analytics and the waitlist for a deployed campaign. Returns page views, visitors, breakdowns, and the email addresses people submitted. A new site may legitimately be all zeros. Do not invent numbers when this fails.",
       annotations: { title: "Fetch traffic", readOnlyHint: true, openWorldHint: true },
       inputSchema: schema({
         type: "object",
@@ -91,7 +92,7 @@ export function createTools(root: string, host: ToolHost): Record<string, SDKCus
     },
     write_marketing_report: {
       description:
-        "Write the marketing report for a campaign. Pass a narrative that interprets fetch_traffic. The tool attaches the measured stats itself, then saves a markdown file and posts it to MARKETING_WEBHOOK_URL when that is set.",
+        "Write the marketing report for a campaign. Pass a narrative that interprets fetch_traffic, including how many people joined the waitlist. The tool attaches the measured stats and the saved email addresses itself, then saves a markdown file and posts it to MARKETING_WEBHOOK_URL when that is set.",
       annotations: { title: "Write marketing report", openWorldHint: true },
       inputSchema: schema({
         type: "object",
@@ -150,7 +151,12 @@ async function recordDesign(
 async function deploySite(root: string, args: Record<string, SDKJsonValue>): Promise<unknown> {
   const paths = campaignPaths(root, requiredString(args, "slug"));
   const campaign = await requireCampaign(root, paths.slug);
-  const deployment = await deployDirectory(paths.siteDir, paths.slug);
+  const projectId = await ensureProject(paths.slug, campaign.deployment?.projectId);
+  const signups = await ensureSignupStore(projectId, paths.slug, campaign.signups);
+  campaign.signups = signups;
+  campaign.updatedAt = new Date().toISOString();
+  await saveCampaign(root, campaign);
+  const deployment = await deployDirectory(paths.siteDir, paths.slug, signups.token);
   campaign.deployment = { ...deployment, deployedAt: new Date().toISOString() };
   campaign.updatedAt = campaign.deployment.deployedAt;
   await saveCampaign(root, campaign);
@@ -176,10 +182,13 @@ async function deploySite(root: string, args: Record<string, SDKJsonValue>): Pro
 }
 
 async function pullTraffic(root: string, args: Record<string, SDKJsonValue>): Promise<unknown> {
-  const snapshot = await loadTraffic(root, requiredString(args, "slug"));
+  const slug = requiredString(args, "slug");
+  const snapshot = await loadTraffic(root, slug);
+  const signups = await loadSignups(root, slug);
   return {
     ...snapshot,
-    next: "Call write_marketing_report with this slug and a narrative for the marketing owner. Use only numbers present in this result.",
+    signups,
+    next: "Call write_marketing_report with this slug and a narrative for the marketing owner. Use only numbers present in this result, including the waitlist count.",
   };
 }
 
@@ -191,12 +200,14 @@ async function writeReport(root: string, args: Record<string, SDKJsonValue>): Pr
   const paths = campaignPaths(root, slug);
   const campaign = await requireCampaign(root, slug);
   const traffic = await loadTraffic(root, slug);
+  const signups = await loadSignups(root, slug);
   const preparedAt = new Date();
   const markdown = renderReport({
     title: campaign.design?.title ?? campaign.slug,
     url: campaign.deployment?.url,
     narrative,
     traffic,
+    signups,
     preparedAt,
   });
   await mkdir(paths.reportsDir, { recursive: true });
@@ -230,6 +241,14 @@ async function loadTraffic(root: string, slug: string): Promise<TrafficSnapshot>
     until,
   });
   await writeFile(paths.statsPath, JSON.stringify(snapshot, null, 2) + "\n");
+  return snapshot;
+}
+
+async function loadSignups(root: string, slug: string): Promise<SignupSnapshot> {
+  const paths = campaignPaths(root, slug);
+  const campaign = await requireCampaign(root, slug);
+  const snapshot = await loadSignupSnapshot(campaign.signups?.token);
+  await writeFile(path.join(paths.dir, "latest-signups.json"), JSON.stringify(snapshot, null, 2) + "\n");
   return snapshot;
 }
 

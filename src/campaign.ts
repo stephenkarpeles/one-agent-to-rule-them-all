@@ -26,12 +26,18 @@ export interface DeploymentInfo {
   deployedAt: string;
 }
 
+export interface SignupStore {
+  storeId: string;
+  token: string;
+}
+
 export interface Campaign {
   slug: string;
   brief: string;
   agentId?: string;
   design?: CampaignDesign;
   deployment?: DeploymentInfo;
+  signups?: SignupStore;
   createdAt: string;
   updatedAt: string;
 }
